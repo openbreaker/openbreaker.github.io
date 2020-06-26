@@ -4,7 +4,7 @@ $(function(){
             resolve(data)
         });
     }).then(function(hash_data){
-        for (let i = 0; i < 65536; i++) {
+        for (let i = 0; i < 1073741824; i++) {
             let index = '' + i;
             let md5data = md5(index);
             if(md5data == hash_data){
