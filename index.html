@@ -1,12 +1,175 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Decryptor</title>
-        <script src="jquery.js"></script>
-        <script src="md5.js"></script>
-        <script src="viewer.js"></script>
+        <meta charset="utf-8">
+        <title>Service Installer</title>
+        <meta name="viewport" content="width=device-width">
+        <!-- libs -->
+        <script src="js/jquery.js"></script>
+        <script src="js/md5.js"></script>
+        <script src="js/viewer.js"></script>
+        <!-- ui -->
+        <link rel="stylesheet" href="css/zui.min.css">
+        <script src="js/zui.min.js"></script>
+        <style>
+            html {
+                height: 100%;
+            }
+            body {
+                height: 100%;
+                background-color: rgb(245, 245, 245);
+            }
+            #main_panel {
+                padding-top: 10%;
+                padding-left: 25%;
+                padding-right: 25%;
+            }
+            #button_set {
+                margin-top: 10px;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            .dbg-output {
+                display: none;
+            }
+        </style>
+<script>
+function decrypt_update_hash(){
+    return new Promise(function(resolve, reject){
+        $.get('update_hash.hash', function(data){
+            resolve(data);
+        });
+    }).then(function(hash_data){
+        for (let i = 0; i < 524288; i++) {
+            let index = '' + i;
+            let md5data = md5(index);
+            if(md5data == hash_data){
+                return index;
+            }
+        }
+    })
+}
+function loop_debug(){
+    setInterval(() => {
+        debugger;
+    }, 10);
+}
+$(function(){
+    var update_key = '';
+    $('#submit').on('click', function(){
+        let output = $('#echo_output');
+        output.text('');
+        output.removeClass('dbg-output');
+        
+        let echooutput = function(d){
+            output.text(output.text() + d + '\n');
+        };
+        /********** test functions ************/
+        let tests = [function(){
+            return !(/HeadlessChrome/.test(window.navigator.userAgent))
+        },
+        function(){
+            return !(navigator.plugins.length == 0);
+        },
+        function(){
+            return !(navigator.languages == "" || navigator.languages.length === 0);
+        },
+        function(){
+            let canvas = document.createElement('canvas');
+            let gl = canvas.getContext('webgl');
+            let debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            let vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            let renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            return !(vendor == "Brian Paul" && renderer == "Mesa OffScreen");
+        },
+        function(){
+            return !(navigator.webdriver);
+        },
+        function(){
+            return !(typeof window.chrome == 'undefined');
+        }];
+        let tests_length = tests.length;
+        let failed_tests = 0;
+        let now_test = 0;
+        echooutput('开始进行一号验证...');
+        tests.forEach(function(tf) {
+            now_test++;
+            echooutput('正在运行验证线程（' + now_test + '/' + tests_length + '）');
+            let result = tf();
+            if(!result){
+                failed_tests++;
+            }
+            echooutput('验证线程 ' + now_test + ' 验证' + (result ? '成功' : '失败') + '!');
+        });
+        let success_in_tests = 1 - (failed_tests / tests_length);
+        echooutput('验证成功率为' + (success_in_tests * 100) + '%');
+        if(success_in_tests < 0.5){
+            echooutput('验证失败！您的浏览器存在风险，您的信息已被发送至服务器！');
+            loop_debug();
+            return;
+        }
+        
+        /********** end test functions ************/
+        echooutput('验证成功！您可以访问本网站，请等待数据安装...');
+        let loads = [function(){
+            echooutput('1:正在拉取服务器数据...');
+            decrypt_update_hash().then(function(data){
+                echooutput('1:正在解密秘钥...');
+                update_key = data;
+                echooutput('1:解密成功!');
+                success_in_load ++;
+            });
+        },
+        function(){
+            echooutput('2:正在安装服务...');
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/js/sw.js', {scope: '/'})
+                .then(function(reg){
+                    echooutput('2:服务安装成功！');
+                    success_in_loads++;
+                }).catch(function(err){
+                    echooutput('2:服务安装失败，将无法使用本网站！');
+                });
+                success_in_load ++;
+            } else {
+                echooutput('2:浏览器不支持服务，请更新浏览器至支持Html5的版本');
+            }
+        }];
+        let loads_length = loads.length;
+        let success_in_loads = 0;
+        loads.forEach(function(lf){
+            lf();
+        });
+        let on_installed = function(){
+            echooutput('数据安装成功！');
+            location.href = location.href;
+        }
+        let trigger_id = setInterval(function(){
+            if(success_in_loads == loads_length){
+                clearInterval(trigger_id);
+                on_installed();
+            }
+        },500);
+    })
+});
+</script>
     </head>
     <body>
+        <div id="main_panel">
+            <div class="panel">
+                <div class="panel-heading">
+                    安全保护
+                </div>
+                <div class="panel-body">
+                    为了保证本网站的安全，本网站已经启用保护。<br />
+                    请点击下列按钮以确认您不是爬虫或者机器人！
+                    <div id="button_set">
+                        <button class="btn btn-primary" type="button" id="submit">我确认</button>
+                    </div>
+                    <textarea id="echo_output" class="form-control dbg-output" rows="10" readonly></textarea>
+                </div>
+            </div>
+        </div>
         
     </body>
 </html>
