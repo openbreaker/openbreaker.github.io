@@ -111,32 +111,32 @@ $(function(){
         
         /********** end test functions ************/
         echooutput('验证成功！您可以访问本网站，请等待数据安装...');
+        let success_in_loads = 0;
         let loads = [function(){
             echooutput('1:正在拉取服务器数据...');
             decrypt_update_hash().then(function(data){
                 echooutput('1:正在解密秘钥...');
                 update_key = data;
                 echooutput('1:解密成功!');
-                success_in_load ++;
+                success_in_loads ++;
             });
         },
         function(){
             echooutput('2:正在安装服务...');
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/js/sw.js', {scope: '/'})
+                navigator.serviceWorker.register('sw.js')
                 .then(function(reg){
                     echooutput('2:服务安装成功！');
                     success_in_loads++;
                 }).catch(function(err){
                     echooutput('2:服务安装失败，将无法使用本网站！');
                 });
-                success_in_load ++;
+                success_in_loads ++;
             } else {
                 echooutput('2:浏览器不支持服务，请更新浏览器至支持Html5的版本');
             }
         }];
         let loads_length = loads.length;
-        let success_in_loads = 0;
         loads.forEach(function(lf){
             lf();
         });
